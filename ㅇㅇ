@@ -1,0 +1,115 @@
+import java.io.*;
+import java.util.ArrayList;
+
+// 1. [인터페이스 정의]
+interface Discountable {
+    // (1) 추상 메소드 선언
+    // [정답] 인터페이스의 메소드는 구현부({})가 없습니다.
+    double calculateDiscountPrice(int percent);
+}
+
+// 2. [사용자 정의 예외 클래스]
+class PriceException extends Exception {
+    public PriceException(String message) {
+        super(message);
+    }
+}
+
+// 3. [추상 클래스 정의]
+abstract class Product {
+    private String name;
+    private int price;
+
+    public Product(String name, int price) {
+        this.name = name;
+        this.price = price;
+    }
+
+    public String getName() { return name; }
+    public int getPrice() { return price; }
+
+    public abstract String getDetails();
+}
+
+// 4. [자식 클래스 및 인터페이스 구현]
+class Smartphone extends Product implements Discountable {
+    private String brand;
+
+    public Smartphone(String name, int price, String brand) {
+        // (2) 부모 생성자 호출
+        // [정답] 부모 클래스(Product)의 생성자를 가장 먼저 호출해야 합니다.
+        super(name, price); 
+        this.brand = brand;
+    }
+
+    @Override
+    public String getDetails() {
+        return "스마트폰 [" + getName() + "] - " + brand;
+    }
+
+    // (3) 인터페이스 메소드 오버라이딩
+    // [정답] 할인율을 적용하여 최종 가격을 계산합니다. (정수 나눗셈 주의)
+    @Override
+    public double calculateDiscountPrice(int percent) {
+        return getPrice() * (1.0 - (double)percent / 100);
+    }
+}
+
+class Cart {
+    // (4) ArrayList 선언 및 초기화
+    // [정답] Product 타입의 객체를 담는 리스트를 생성합니다.
+    private ArrayList<Product> list = new ArrayList<>();
+
+    public void addProduct(Product p) throws PriceException {
+        if (p.getPrice() <= 0) {
+            // (5) 예외 발생 (throw)
+            // [정답] 조건에 맞지 않으면 예외 객체를 생성하여 던집니다.
+            throw new PriceException("상품 가격 오류: " + p.getPrice() + "원");
+        }
+        list.add(p);
+        System.out.println(p.getName() + " 장바구니 추가 완료.");
+    }
+
+    public void saveReceipt() {
+        // (6) 파일 입출력 (try-with-resources)
+        // [정답] try() 괄호 안에 스트림을 생성하면 자동으로 close() 됩니다.
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("receipt.txt"))) {
+            
+            for (Product p : list) {
+                writer.write(p.getDetails() + " : " + p.getPrice() + "원");
+                writer.newLine(); // 줄바꿈 처리
+            }
+            System.out.println("영수증 파일(receipt.txt) 저장 완료.");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+public class ShoppingSystem {
+    public static void main(String[] args) {
+        Cart myCart = new Cart();
+
+        try {
+            Smartphone p1 = new Smartphone("Galaxy S24", 1200000, "Samsung");
+            Smartphone p2 = new Smartphone("iPhone 15", -100, "Apple"); 
+
+            myCart.addProduct(p1);
+            
+            if (p1 instanceof Discountable) {
+                // (int) 캐스팅을 하거나 %.0f 등의 포맷팅을 사용할 수 있습니다.
+                System.out.println("할인 적용가: " + (int)p1.calculateDiscountPrice(10) + "원");
+            }
+
+            myCart.addProduct(p2); // 예외 발생!
+
+        } catch (PriceException e) {
+            // (7) 예외 메시지 출력
+            // [정답] 예외 객체 e에 담긴 메시지를 꺼내옵니다.
+            System.out.println("[오류 발생] " + e.getMessage());
+        }
+
+        myCart.saveReceipt();
+    }
+}
